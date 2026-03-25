@@ -1,6 +1,6 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/$USER/public_html/
+    - export DEPLOYPATH=/home/cxdaicom/public_html/alilab.com.tr/
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -r out/* $DEPLOYPATH
