@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* League Spartan Bold */
+@font-face {
+  font-family: 'LeagueSpartan';
+  src: url('/leaguespartan-bold.woff2') format('woff2'),
+       url('/leaguespartan-bold.woff')  format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: #000000;
+  color: #d4d4d4;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #00d4ff44; }
+
+/* Selection */
+::selection { background: rgba(0,212,255,0.25); color: #fff; }
+
+/* ─── Glitch effect ──────────────────────────────────────────── */
+@keyframes glitch {
+  0%   { transform: translate(0); text-shadow: none; clip-path: none; }
+  10%  { transform: translate(-2px, 0) skewX(-2deg);
+         text-shadow: 2px 0 #00ff88, -2px 0 #ff2d55; }
+  20%  { transform: translate(2px, 0)  skewX(2deg);
+         text-shadow: -2px 0 #00d4ff,  2px 0 #ff6b35; }
+  30%  { transform: translate(-1px, 1px);
+         text-shadow: 1px 0 #9b59b6; }
+  40%  { transform: translate(1px, -1px) skewX(-1deg);
+         text-shadow: -1px 0 #00ff88; }
+  50%  { transform: translate(-2px, 0);
+         text-shadow: 2px 0 #ff2d55,  -2px 0 #00d4ff; }
+  60%  { transform: translate(0, 1px); text-shadow: none; }
+  70%  { transform: translate(1px, 0) skewX(1deg);
+         text-shadow: -1px 0 #ff6b35; }
+  80%  { transform: translate(0); text-shadow: none; }
+  100% { transform: translate(0); text-shadow: none; }
+}
+
+.glitch-active {
+  animation: glitch 0.35s steps(1) forwards;
+  will-change: transform, text-shadow;
+}
+
+/* ─── Glitch for images (no text-shadow — uses filter instead) ── */
+@keyframes glitch-img {
+  0%   { transform: translate(0);           filter: none; }
+  12%  { transform: translate(-3px, 0) skewX(-3deg); filter: hue-rotate(60deg)  contrast(1.4); }
+  25%  { transform: translate(3px, 0)  skewX(3deg);  filter: hue-rotate(190deg) saturate(2); }
+  38%  { transform: translate(-1px, 1px);   filter: brightness(1.6); }
+  50%  { transform: translate(2px, -1px);   filter: hue-rotate(280deg); }
+  65%  { transform: translate(-2px, 0) skewX(-1deg); filter: contrast(1.3); }
+  80%  { transform: translate(1px, 0);      filter: brightness(1.2); }
+  100% { transform: translate(0);           filter: none; }
+}
+
+.glitch-img-active {
+  animation: glitch-img 0.35s steps(1) forwards;
+  will-change: transform, filter;
+}
