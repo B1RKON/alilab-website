@@ -12,6 +12,15 @@
   font-display: swap;
 }
 
+/* Rafale BG */
+@font-face {
+  font-family: 'Rafale';
+  src: url('/rafale-bg.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #000000;
   --foreground: #ffffff;
