@@ -9,15 +9,49 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase
+      - name: Validate secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/?select=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
-          echo "Supabase ping status: $STATUS"
-          if [ "$STATUS" != "200" ] && [ "$STATUS" != "404" ]; then
-            echo "Unexpected status: $STATUS"
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::error::SUPABASE_URL secret is empty"
+            exit 1
+          fi
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_ANON_KEY secret is empty"
+            exit 1
+          fi
+          URL_LEN=${#SUPABASE_URL}
+          KEY_LEN=${#SUPABASE_ANON_KEY}
+          echo "URL length: $URL_LEN"
+          echo "Key length: $KEY_LEN"
+          case "$SUPABASE_URL" in
+            https://*.supabase.co) echo "URL format: OK" ;;
+            https://*.supabase.co/) echo "URL format: trailing slash detected (will be stripped)" ;;
+            https://*) echo "URL format: https but not standard supabase.co" ;;
+            http://*) echo "URL format: WARNING http instead of https" ;;
+            *) echo "URL format: INVALID — does not start with https://" ;;
+          esac
+
+      - name: Ping Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          CLEAN_URL="${SUPABASE_URL%/}"
+          STATUS=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" \
+            "${CLEAN_URL}/rest/v1/?select=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" || echo "curl_failed")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" = "curl_failed" ]; then
+            echo "::error::curl failed to reach Supabase host"
+            exit 1
+          fi
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "404" ] && [ "$STATUS" != "401" ]; then
+            echo "::error::Unexpected status: $STATUS"
+            cat /tmp/resp.txt || true
             exit 1
           fi
           echo "Supabase is alive!"
