@@ -2,7 +2,7 @@ name: Supabase Keepalive
 
 on:
   schedule:
-    - cron: '0 9 */5 * *'   # Her 5 günde bir 09:00 UTC
+    - cron: '0 9 */3 * *'   # Her 3 günde bir 09:00 UTC (7 gün pause limitinden önce)
   workflow_dispatch:          # Manuel tetikleme (test için)
 
 jobs:
@@ -40,18 +40,36 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           CLEAN_URL="${SUPABASE_URL%/}"
-          STATUS=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" \
-            "${CLEAN_URL}/rest/v1/?select=1" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" || echo "curl_failed")
-          echo "HTTP status: $STATUS"
-          if [ "$STATUS" = "curl_failed" ]; then
-            echo "::error::curl failed to reach Supabase host"
-            exit 1
-          fi
-          if [ "$STATUS" != "200" ] && [ "$STATUS" != "404" ] && [ "$STATUS" != "401" ]; then
-            echo "::error::Unexpected status: $STATUS"
-            cat /tmp/resp.txt || true
-            exit 1
-          fi
-          echo "Supabase is alive!"
+          ENDPOINT="${CLEAN_URL}/rest/v1/?select=1"
+
+          # 3 deneme yap (bazen Supabase uyanması zaman alır)
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt/3..."
+            HTTP_CODE=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" \
+              --connect-timeout 15 --max-time 30 \
+              "$ENDPOINT" \
+              -H "apikey: ${SUPABASE_ANON_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" 2>/tmp/curl_err.txt) && CURL_OK=true || CURL_OK=false
+
+            if [ "$CURL_OK" = "true" ] && [ "$HTTP_CODE" != "000" ]; then
+              echo "HTTP status: $HTTP_CODE"
+              if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ] || [ "$HTTP_CODE" = "401" ]; then
+                echo "Supabase is alive!"
+                exit 0
+              fi
+            else
+              echo "curl failed (attempt $attempt): $(cat /tmp/curl_err.txt 2>/dev/null)"
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Retrying in 10s..."
+              sleep 10
+            fi
+          done
+
+          echo "::error::All 3 attempts failed. Last HTTP code: ${HTTP_CODE:-none}"
+          echo "Last response: $(cat /tmp/resp.txt 2>/dev/null)"
+          echo "Last curl error: $(cat /tmp/curl_err.txt 2>/dev/null)"
+          echo ""
+          echo "If Supabase project is paused, restore it from: https://supabase.com/dashboard"
+          exit 1
